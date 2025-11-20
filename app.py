@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from functools import wraps
+import sqlite3
 
 app = Flask(__name__)
 
@@ -36,6 +37,48 @@ def require_api_token(func):
 @require_api_token # Uso del decorador para proteger esta ruta
 def server_status():
     return jsonify({"mensaje": "El sistema esta online y seguro"}), 200
+
+# 4. Ruta para recibir logs
+@app.route('/logs', methods=['POST'])
+@require_api_token # 1. Primero se verifica la seguridad
+def create_log():
+    # 2. Obtenemos los datos JSON enviados por el cliente
+    data = request.get_json()     
+
+    if not data:
+        return jsonify({"error:" "Payload invalido, se esperaba JSON"}), 400
+    
+    # 3. Validación básica: ¿Están los campos obligatorios?
+    required_fields = ['service', 'severity', 'message', 'timestamp']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"error": f"Falta el campo obligatorio: {field}"}), 400
+    
+    # 4.Guardado en Base de Datos
+    try:
+        conn = sqlite3.connect('logs.db')
+        cursor = conn.cursor()
+        
+        # Insertamos los datos
+        # NOTA: No insertamos 'received_at', la DB lo pone sola por defecto
+        query = '''
+            INSERT INTO logs (service_name, severity, message, timestamp)
+            VALUES (?, ?, ?, ?)
+        '''
+        cursor.execute(query,(
+            data['service'],
+            data['severity'],
+            data['message'],
+            data['timestamp']
+        ))
+
+        conn.commit() # Guardamos los cambios
+        conn.close() # Cerramos conexión para liberar el archivo
+
+        return jsonify({"message": "Log guardado exitosamente"}), 201
+    except Exception as e:
+        # Si algo explota en la base de datos, avisamos sin romper el servidor
+        return jsonify({"error": f"Error interno: {str(e)}"}), 500
 
 if __name__ == "__main__":
     # Se ejecuta la aplicación en modo debug para ver errores si aparecen

@@ -1,0 +1,11 @@
+PRUEBA PARA SIMULAR UN SERVICIO 
+
+curl -X POST http://127.0.0.1:5000/logs \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Token token-servicio-A" \
+     -d '{
+           "service": "payment-service",
+           "severity": "ERROR",
+           "message": "Fallo al procesar tarjeta Visa",
+           "timestamp": "2023-10-27 10:00:00"
+         }'
