@@ -80,6 +80,75 @@ def create_log():
         # Si algo explota en la base de datos, avisamos sin romper el servidor
         return jsonify({"error": f"Error interno: {str(e)}"}), 500
 
+# ENDPOINT DE CONSULTA DE LOGS 
+@app.route('/logs', methods=['GET'])
+@require_api_token
+def get_logs():
+    # 1. Capturamos los parámetros de la URL (Query Parameters)
+    # Ejemplo: /logs?timestamp_start=2023-01-01
+    ts_start = request.args.get('timestamp_start')
+    ts_end = request.args.get('timestamp_end')
+    rc_start = request.args.get('received_at_start')
+    rc_end = request.args.get('received_at_end')
+
+    # 2. Construcción de la Query dinámica
+    # "WHERE 1=1" es un truco común: es un condición siempre verdadera
+    # que nos permite agregar más condiciones con "AND" sin preocuparnos si es la primera
+    query = "SELECT * FROM logs WHERE 1=1"
+    params = [] 
+
+    # Agregamos filtros solos si el usuario los envió
+    if ts_start:
+        query += " AND timestamp >= ?"
+        params.append(ts_start)
+    
+    if ts_end:
+        query += " AND timestamp <= ?"
+        params.append(ts_end)
+    
+    if rc_start:
+        query += " AND received_at >= ?"
+        params.append(rc_start)
+    
+    if rc_end:
+        query += " AND received_at <= ?"
+        params.append(rc_end)
+    
+    # Ordenamos para ver lo más reciente primero
+    query += " ORDER BY timestamp DESC"
+
+    # 3. Ejecución y Formateo
+    try:
+        conn = sqlite3.connect('logs.db')
+        # Hace que SQLite devuelva objetos parecidos a diccionarios en lugar de tuplas numéricas
+        conn.row_factory = sqlite3.Row # Esto permite acceder a las columnas por nombbre
+        cursor = conn.cursor()
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        # Convertimos las filas de la DB a una lista de diccionarios (JSON)
+        results = []
+        for row in rows:
+            results.append({
+                "id": row["id"],
+                "service": row["service_name"],
+                "severity": row["severity"],
+                "message": row["message"],
+                "timestamp": row["timestamp"],
+                "received_at": row["received_at"]
+            })        
+
+        conn.close() # Cerramos conexión para liberar el archivo
+
+        # 4. Respuesta clara y ordenada
+        return jsonify({
+            "count": len(results),
+            "logs": results
+        }), 200
+    except Exception as e:
+        return jsonify({"error": f"Error al consultar: {str(e)}"}), 500
+
 if __name__ == "__main__":
     # Se ejecuta la aplicación en modo debug para ver errores si aparecen
     app.run(debug=True, port=5000)
