@@ -6,11 +6,12 @@ app = Flask(__name__)
 
 # 1. Configuración: Lista manual de tokens válidos
 VALID_TOKENS = [
-    "token-servicio-A",
-    "token-servicio-B",
-    "token-admin-secreto"
+    "token-auth-seguro-111",
+    "token-pagos-seguro-222",
+    "token-email-seguro-333",
+    "token-db-seguro-444",
+    "token-admin-secreto" # Para pruebas 
 ]
-
 # 2. El Decorador de Autenticación (EL GRAN GUARDIÁN)
 
 def require_api_token(func):
