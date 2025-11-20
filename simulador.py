@@ -6,45 +6,80 @@ from datetime import datetime
 # 1. Configuración del target
 SERVER_URL = "http://127.0.0.1:5000/logs"
 
-
-
-# Lista de tokens válidos
-TOKENS = [
-    "token-servicio-A",
-    "token-servicio-B"
-]
+CONFIG_SERVICIOS = {
+    "auth-service":  "token-auth-seguro-111",
+    "payment-api":   "token-pagos-seguro-222",
+    "email-worker":  "token-email-seguro-333",
+    "database-node": "token-db-seguro-444"
+}
 
 # 2. Datos falsos para generar variedad
-SERVICIOS = ["auth-service", "payment-api", "email-worker", "database-node"]
 NIVELES = ["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
-MENSAJES = [
-    "Conexión establecida correctamente.",
-    "Tiempo de espera agotado (Timeout).",
-    "Usuario 'admin' intentó ingresar.",
-    "Error de sintaxis en consulta SQL.",
-    "Pago rechazado por fondos insuficientes.",
-    "El servidor se está reiniciando."
-]
 
-def generar_log_falso():
-    # Crea un diccionario con datos aleatorios pero con sentido
+MENSAJES_POR_SERVICIO = {
+    "auth-service": [
+        "Usuario inicio sesion exitosamente.",
+        "Intento de login fallido: pass incorrecta.",
+        "Token expirado, solicitando refresh.",
+        "Usuario bloqueado por seguridad."
+    ],
+    "payment-api": [
+        "Transaccion #8821 aprobada.",
+        "Pago rechazado: Fondos insuficientes.",
+        "Timeout conectando con el banco.",
+        "Reembolso procesado."
+    ],
+    "email-worker": [
+        "Email enviado correctamente.",
+        "Error SMTP: Host inalcanzable.",
+        "Generando reporte mensual en PDF.",
+        "Cola de correos procesada."
+    ],
+    "database-node": [
+        "Query ejecutada en 12ms.",
+        "Error de conexion: Too many connections.",
+        "Backup realizado con exito.",
+        "Indice reconstruido."
+    ]
+}
+
+def generar_log_falso(nombre_servicio):
+  
+    lista_mensajes = MENSAJES_POR_SERVICIO[nombre_servicio]
+    mensaje = random.choice(lista_mensajes)
+
+    nivel = random.choice(NIVELES)
+
+    if "Error" in mensaje or "rechazado" in mensaje or "fallido" in mensaje:
+        nivel = "ERROR"
+
     return {
-        "service": random.choice(SERVICIOS),
-        "severity": random.choice(NIVELES),
-        "message": random.choice(MENSAJES),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
+    "service": nombre_servicio,
+    "severity": nivel,
+    "message": mensaje,
+    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+}
 
-def simiular_trafico(cantidad_logs=50):
+# Función principal del simulador de tráfico
+def simular_trafico(cantidad_logs=50):
     print(f"--- Iniciando simulación de {cantidad_logs} logs --- ")
 
+    nombres_servicios = list(CONFIG_SERVICIOS.keys())
+    
     for i in range(cantidad_logs):
-        # Preparamos los datos
-        log_data = generar_log_falso()
 
-        # Elegimos un token al azar para simular distintos clientes autenticados
-        token_actual = random.choice(TOKENS)
-        headers = {"Authorization": f"Token {token_actual}"}
+        # Elegimos el servicio..
+        servicio_actual = random.choice(nombres_servicios)
+
+        # Obtenemos su token especifico
+        token_actual = CONFIG_SERVICIOS[servicio_actual]
+        
+        # Generamos el log falso coherente para el servicio
+        log_data = generar_log_falso(servicio_actual) # Generamos un log falso para ese servicio
+        headers = {
+            "Authorization": f"Token {token_actual}",
+            "Content-Type": "application/json" 
+        }
 
         try: 
             # Enviamos el POST requests
@@ -52,7 +87,8 @@ def simiular_trafico(cantidad_logs=50):
 
             # Feedback visual en la consola
             if response.status_code == 201:
-                print(f"[{i+1}/{cantidad_logs}] Enviado: {log_data['service']} -> OK")
+                #print(f"[{i+1}/{cantidad_logs}] Enviado: {log_data['service']} -> OK")
+                print(f"[{i+1}] {servicio_actual} (Token: ...{token_actual[-3:]}) -> OK")
             else:
                 print(f"[{i+1}/{cantidad_logs}] Error {response.status_code}: {response.text}")
         except Exception as e:
@@ -65,5 +101,5 @@ def simiular_trafico(cantidad_logs=50):
     print("--- Simulación finalizada ---")
 
 if __name__ == "__main__":
-    simiular_trafico(1000)
+    simular_trafico(100)
 
