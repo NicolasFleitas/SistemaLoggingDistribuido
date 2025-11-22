@@ -12,6 +12,12 @@ CONFIG_SERVICIOS = {
     "email-worker":  "token-email-seguro-333",
     "database-node": "token-db-seguro-444"
 }
+CONFIG_SERVICIOS = {
+    "auth-service":  "token-auth-seguro-111",
+    "payment-api":   "token-pagos-seguro-222",
+    "email-worker":  "token-email-seguro-333",
+    "database-node": "token-db-seguro-444"
+}
 
 # 2. Datos falsos para generar variedad
 NIVELES = ["INFO", "DEBUG", "WARNING", "ERROR", "CRITICAL"]
@@ -66,6 +72,9 @@ def simular_trafico(cantidad_logs=50):
 
     nombres_servicios = list(CONFIG_SERVICIOS.keys())
     
+
+    nombres_servicios = list(CONFIG_SERVICIOS.keys())
+    
     for i in range(cantidad_logs):
 
         # Elegimos el servicio..
@@ -87,6 +96,8 @@ def simular_trafico(cantidad_logs=50):
 
             # Feedback visual en la consola
             if response.status_code == 201:
+                #print(f"[{i+1}/{cantidad_logs}] Enviado: {log_data['service']} -> OK")
+                print(f"[{i+1}] {servicio_actual} (Token: ...{token_actual[-3:]}) -> OK")
                 #print(f"[{i+1}/{cantidad_logs}] Enviado: {log_data['service']} -> OK")
                 print(f"[{i+1}] {servicio_actual} (Token: ...{token_actual[-3:]}) -> OK")
             else:
